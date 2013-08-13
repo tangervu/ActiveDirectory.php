@@ -1,0 +1,97 @@
+How to enable ActiveDirectory on Apache server running on Linux
+===============================================================
+
+Example configuration:
+----------------------
+
+- Apache/Linux server: Fully qualified domain name server123.example.org. 
+  This server is virtual hosting someservice.net and anotherexample.org.
+
+- ActiveDirectory servers: Default server running at 
+  activedirectory-example.net (realm ACTIVEDIRECTORY-EXAMPLE.NET). Local 
+  server also found at local.activedirectory-example.net. (realm
+  LOCAL.ACTIVEDIRECTORY-EXAMPLE.NET)
+
+ActiveDirectory server:
+-----------------------
+
+- Create an ActiveDirectory account for the Apache/Linux server (example
+  login: servers.server123)
+
+- Connect the created ActiveDirectory account to the Apache/Linux server:
+   setspn -a HTTP/<hostname> <account login>
+  
+  For the example configuration:
+   setspn -a HTTP/server123.example.org servers.server123
+
+- You can verify the linked server by listing services linked to an account:
+   setspn -l <account login>
+  
+  For the example configuration:
+   setspn -l servers.server123
+
+- Create a keytab for the Apache/Linux server:
+   ktpass -princ HTTP/<hostname>@<realm> -mapuser <account login> -pass <account password> -out krb5.keytab
+   
+  For example configuration:
+   ktpass -princ HTTP/server123.example.org@ACTIVEDIRECTORY-EXAMPLE.NET -mapuser servers.server123 -pass topsecret -out krb5.keytab
+
+- Copy the generated keytab file krb5.keytab into the Apache/Linux server
+
+Apache/Linux server:
+--------------------
+
+- Install mod_auth_kerb Kerberos authentication module for apache.
+  On Debian based Linux the package libapache2-mod-auth-kerb.
+
+- Copy keytab created on the ActiveDirectory server into a secure
+  location, e.g. /etc/krb5.keytab. Apache needs to have an access to
+  the keytab file but other users shouldn't.
+  
+- Configure your ActiveDirectory server information at /etc/krb5.conf.
+  On [libdefaults] add your default server name for default_realm.
+  Add all your ActiveDirectory servers into [realms].
+
+- Test if the Kerberos settings you made are functional. You can find
+  command line tools from krb5-user package on Debian based distros:
+  
+  Test login to ActiveDirectory by running command:
+   kinit <login@REALM>
+  After you have entered the ActiveDirectory password for the user, 
+  you should be able to see the kerberos ticket information you have
+  recieved by running command klist.
+  
+  For testing the kerberos keytab you can execute command:
+   kinit HTTP/<hostname>@<realm> -k -t /etc/krb5.keytab
+  For example configuration:
+   kinit HTTP/server123.example.org@ACTIVEDIRECTORY-EXAMPLE.NET -k -t /etc/krb5.keytab
+  Again you can see the issued ticket by running command klist.
+  
+- Configure Apache to use Kerberos authentication using mod_auth_kerb:
+   AuthType Kerberos
+   AuthName "Password protected site"
+   KrbAuthRealms <list of realms>
+   Krb5Keytab /etc/krb5.keytab
+   KrbServiceName HTTP/<hostname>@<realm>
+   KrbMethodNegotiate on
+   Require valid-user
+  
+  For example configuration:
+   AuthType Kerberos
+   AuthName "Password protected site"
+   KrbAuthRealms ACTIVEDIRECTORY-EXAMPLE.NET LOCAL.ACTIVEDIRECTORY-EXAMPLE.NET
+   Krb5Keytab /etc/krb5.keytab
+   KrbServiceName HTTP/server123.example.org@ACTIVEDIRECTORY-EXAMPLE.NET
+   KrbMethodNegotiate on
+   Require valid-user
+   
+- Verify Apache configuration by entering the site. Apache should
+  initially respond with following HTTP headers:
+   WWW-Authenticate: Negotiate
+   WWW-Authenticate: Basic; realm="Password protected site"
+
+  In case your browser is configured to use ActiveDirectory authentication
+  on the site, your web browser should login to the webpage without prompting
+  for login details. Otherwise you will have to enter your ActiveDirectory login
+  and password manually. Note: manual logins (basic authentication) work only if
+  the user is in the same realm with the Apache server.
