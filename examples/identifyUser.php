@@ -9,5 +9,5 @@
 
 require_once '../user.php';
 $user = new User();
-$user->loadConfig('config.ini');
+$user->loadConfig('../config.ini');
 echo $user->identify() . "\n";
