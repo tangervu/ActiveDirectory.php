@@ -148,7 +148,7 @@ class ActiveDirectory {
 		if(!$this->conn) {
 			throw new ActiveDirectoryException("No connection");
 		}
-		return $this->conn->query($query, $attributes, $this->base_dn, $this->sizelimit, $this->timelimit);
+		return $this->conn->query($query, $attributes);
 	}
 	
 	
@@ -184,14 +184,14 @@ class ActiveDirectory {
 	 */
 	public function getDname($login) {
 		$query = '(samaccountname=' . self::quote($login) . ')';
-		$data = $this->query($query, array('distinguishedname'));
+		$data = $this->query($query, array('dn'));
 		if(count($data) == 0) {
 			throw new ActiveDirectoryException("User '$login' not found!");
 		}
 		else if(count($data) > 1) {
 			throw new ActiveDirectoryException("Multiple users with login '$login'");
 		}
-		return $data[0]['distinguishedname'][0];
+		return $data[0]['dn'];
 	}
 	
 	
@@ -345,7 +345,76 @@ class ActiveDirectory {
 		}
 		return str_replace($metaChars,$quotedMetaChars,$string);
 	}
-		
+	
+	/**
+	 * Convert ActiveDirectory timestamp into ISO 8601 formatted datetime string
+	 */
+	public static function getTimestamp($ldapTimeString) {
+		$str = $ldapTimeString;
+		if($str) {
+			//Numeric string, hundreds of nanoseconds starting from 1601-010 00:00 (eg. lastlogon, pwdlastset)
+			if(is_numeric($str)) {
+				$epoch = ($str / 10000000) - 11644473600;
+				return date('Y-m-d',$epoch) . 'T' . date('H:i:s',$epoch) . '+00:00';
+			}
+			//Textual representation of date & time (eg. mstsexpiredate)
+			else {
+				$time = substr($str,0,4) . '-' . substr($str,4,2) . '-' . substr($str,6,2) . 'T' . substr($str,8,2) . ':' . substr($str,10,2) . ':' . substr($str,12,2);
+				//Timezone info in string
+				if(strlen($str) > 14) {
+					$timezone = strtoupper(substr($str,-1,1));
+					if($timezone == 'Z') {
+						$time .= '+00:00';
+					}
+					else {
+						trigger_error("Unknown ActiveDirectory timezone '$timezone'",E_USER_WARNING);
+					}
+				}
+				return $time;
+			}
+		}
+		else {
+			return null;
+		}
+	}
+	
+	/**
+	 * Returns ActiveDirectory datetime in YMD format
+	 */
+	public static function getADTimestampString($phpTimeString) {
+		if($phpTimeString) {
+			$date = new DateTime($phpTimeString);
+			$utcOffset = $date->getOffset();
+			if($utcOffset != 0) {
+				$removeSeconds = $utcOffset * -1;
+				$date->modify($removeSeconds . ' seconds');
+			}
+			return $date->format('YmdHis') . '.0Z';
+		}
+		else {
+			return null;
+		}
+	}
+	
+	/**
+	 * Return DName components
+	 *
+	 * @param $dnameString DName string
+	 * @returns array array(OU => array(...), DC => array())
+	 */
+	public static function getDnameComponents($dnameString) {
+		$results = array();
+		$items = explode(',',trim($dnameString));
+		foreach($items as $item) {
+			list($key,$data) = explode('=',$item,2);
+			if(!isset($results[$key])) {
+				$results[$key] = array();
+			}
+			$results[$key][] = $data;
+		}
+		return $results;
+	}
+	
 }
 
 class ActiveDirectoryException extends \Exception {}
