@@ -273,34 +273,57 @@ class ActiveDirectory {
 	 * Check if user or group is member of a group
 	 * 
 	 * @param $dname Distinguished name for the user or group
-	 * @param $group Group name (CN), string or array
+	 * @param $groupDNames Group name (CN), string or array
 	 * @param $recurse Check group membership also from parent groups
 	 * @returns bool
 	 */
-	/*
-	public function isMemberOf($dname, $group, $recurse = true) {
-		$query = '(distinguishedname=' . self::quote($dname) .')';
+	public function isMemberOf($dname, $groupDNames, $recurse = true) {
 		
-		//Fetch direct user memberships
-		$data = $this->query($query, array('memberOf'));
-		if(count($data) == 0) {
-			throw new ActiveDirectoryException("DName '$dname' not found!");
-		}
-		else if(count($data) > 1) {
-			throw new ActiveDirectoryException("Multiple users with DName '$dname'");
+		if(!is_array($groupDNames)) {
+			$groupDNames = array($groupDNames);
 		}
 		
-		$groups = $data[0]['memberof'];
-		foreach($groups as $groupDn) {
-			
-			
+		$parentGroups = array();
+		
+		//Scan through dname memberships
+		$groups = $this->getGroups($dname);
+		if($groups) {
+			foreach($this->getGroups($dname) as $group) {
+				foreach($groupDNames as $groupDName) {
+					if($group == $groupDName) {
+						return true;
+					}
+				}
+				$parentGroups[] = $group;
+			}
 		}
 		
-		print_r($groups);
+		//Check if membership can be found from parent group
+		if($recurse) {
+			foreach($parentGroups as $group) {
+				
+				//Set AD host for the one that contains the group info
+				$parts = self::getDnameComponents($group);
+				if(isset($parts['DC'])) {
+					$host = implode('.',$parts['DC']);
+					$oldHost = $this->getConnectionName();
+					$this->useConnection($host);
+				}
+				
+				if($this->isMemberOf($group, $groupDNames)) {
+					return true;
+				}
+				
+				//Switch back to previous connection
+				if(isset($oldHost)) {
+					$this->useConnection($oldHost);
+				}
+			}
+		}
 		
-		
+		//Didn't find match
+		return false;
 	}
-	*/
 	
 	/**
 	 * Authenticate a user
@@ -404,9 +427,9 @@ class ActiveDirectory {
 	 */
 	public static function getDnameComponents($dnameString) {
 		$results = array();
-		$items = explode(',',trim($dnameString));
+		$items = preg_split('#(?<!\\\)\,#',trim($dnameString)); //explode(',',trim($dnameString));
 		foreach($items as $item) {
-			list($key,$data) = explode('=',$item,2);
+			list($key, $data) = preg_split('#(?<!\\\)\=#',$item,2);//explode('=',$item,2);
 			if(!isset($results[$key])) {
 				$results[$key] = array();
 			}
@@ -414,7 +437,6 @@ class ActiveDirectory {
 		}
 		return $results;
 	}
-	
 }
 
 class ActiveDirectoryException extends \Exception {}
