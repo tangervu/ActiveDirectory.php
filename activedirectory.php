@@ -232,6 +232,43 @@ class ActiveDirectory {
 	}
 	
 	
+	/**
+	 * Search users and groups using common names
+	 * 
+	 * Tries to sort best answers on top
+	 * 
+	 * @param $name search string
+	 * @returns array(dname => cname)
+	 */
+	public function search($name) {
+		$name = self::quote($name);
+		$results = array();
+		
+		//Exact match
+		$query = '(cn=' . $name . ')';
+		$result = $this->query($query, array('cn','distinguishedname'));
+		foreach($result as $row) {
+			$results[$row['distinguishedname'][0]] = $row['cn'][0];
+		}
+		
+		//Beginning of the name has a match
+		$query = '(&(cn=' . $name . '*) (!(cn=' . $name . ')))';
+		$result = $this->query($query, array('cn','distinguishedname'));
+		foreach($result as $row) {
+			$results[$row['distinguishedname'][0]] = $row['cn'][0];
+		}
+		
+		//Search term somewhere in the middle of the name
+		$query = '(&(cn=*' . $name . '*) (!(cn=' . $name . '*)) (!(cn=' . $name . ')))';
+		$result = $this->query($query, array('cn','distinguishedname'));
+		foreach($result as $row) {
+			$results[$row['distinguishedname'][0]] = $row['cn'][0];
+		}
+		
+		return $results;
+	}
+	
+	
 	
 	/**
 	 * List direct memberships for user/group
@@ -255,17 +292,22 @@ class ActiveDirectory {
 	 * List direct members for a group
 	 * 
 	 * @param $dname
+	 * @param $recurse if true, returns also members from subgroups
 	 * @returns array
 	 * @throws ActiveDirectoryException
 	 */
-	public function getMembers($dname) {
+	public function getMembers($dname, $recurse = false) {
 		$data = $this->getInfo($dname, array('member'));
+		$members = null;
 		if(isset($data['member'])) {
-			return $data['member'];
+			$members = $data['member'];
 		}
-		else {
-			return null;
+		
+		if($recurse && $members) {
+			//TODO
 		}
+		
+		return $members;
 	}
 	
 	
