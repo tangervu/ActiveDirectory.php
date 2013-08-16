@@ -304,7 +304,13 @@ class ActiveDirectory {
 		}
 		
 		if($recurse && $members) {
-			//TODO
+			$loopMembers = $members;
+			foreach($loopMembers as $member) {
+				$subMembers = $this->getMembers($member, true);
+				if($subMembers) {
+					$members = array_merge($members, $subMembers);
+				}
+			}
 		}
 		
 		return $members;
@@ -319,7 +325,7 @@ class ActiveDirectory {
 	 * @param $recurse Check group membership also from parent groups
 	 * @returns bool
 	 */
-	public function isMemberOf($dname, $groupDNames, $recurse = true) {
+	public function isMemberOf($dname, $groupDNames, $recurse = false) {
 		
 		if(!is_array($groupDNames)) {
 			$groupDNames = array($groupDNames);
