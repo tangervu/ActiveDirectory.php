@@ -11,6 +11,7 @@
 <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="get">
 Login: <input type="text" name="login" /><br />
 Group: <input type="text" name="group" /><br />
+Check parent groups: <input type="checkbox" name="recurse" value="1" /><br />
 <button type="submit">Check membership</button>
 </form>
 
@@ -21,7 +22,13 @@ if(isset($_GET['group'])) {
 	$ad->loadConfig('../config.ini');
 	$dname = $ad->getDname($_GET['login']);
 	echo "User information for '{$_GET['login']}' (dname: $dname):<br />\n";
-	if($ad->isMemberOf($dname, $_GET['group'])) {
+	if(isset($_GET['recurse'])) {
+		$recurse = true;
+	}
+	else {
+		$recurse = false;
+	}
+	if($ad->isMemberOf($dname, $_GET['group'], $recurse)) {
 		echo "Is member for group '{$_GET['group']}'<br/>\n";
 	}
 	else {
