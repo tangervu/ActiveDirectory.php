@@ -28,7 +28,7 @@ else {
 $dname = $ad->getDname($login);
 
 //List group memberships
-print_r($ad->getGroups);
+print_r($ad->getGroups());
 
 ```
 
