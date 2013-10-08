@@ -1,9 +1,9 @@
 <?php
 /**
  * Get user information
- * 
  *
  * @author Tuomas Angervuori <tuomas.angervuori@gmail.com>
+ * @license http://opensource.org/licenses/LGPL-3.0 LGPL v3
  **/
 
 require_once dirname(__FILE__) . '/user/authenticator.php';
