@@ -17,8 +17,8 @@ Check parent groups: <input type="checkbox" name="recurse" value="1" /><br />
 
 <?php
 if(isset($_GET['group'])) {
-	require_once '../activedirectory.php';
-	$ad = new ActiveDirectory();
+	require_once '../vendor/autoload.php';
+	$ad = new ActiveDirectory\ActiveDirectory();
 	$ad->loadConfig('../config.ini');
 	$dname = $ad->getDname($_GET['login']);
 	echo "User information for '{$_GET['login']}' (dname: $dname):<br />\n";

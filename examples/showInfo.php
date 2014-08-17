@@ -13,8 +13,8 @@ Login: <input type="text" name="login" />
 
 <?php
 if(isset($_GET['login'])) {
-	require_once '../activedirectory.php';
-	$ad = new ActiveDirectory();
+	require_once '../vendor/autoload.php';
+	$ad = new ActiveDirectory\ActiveDirectory();
 	$ad->loadConfig('../config.ini');
 	$dname = $ad->getDname($_GET['login']);
 	echo "<pre>\n";

@@ -13,8 +13,8 @@ Search: <input type="text" name="search" />
 
 <?php
 if(isset($_GET['search'])) {
-	require_once '../activedirectory.php';
-	$ad = new ActiveDirectory();
+	require_once '../vendor/autoload.php';
+	$ad = new ActiveDirectory\ActiveDirectory();
 	$ad->loadConfig('../config.ini');
 	$results = $ad->search($_GET['search']);
 	echo "<pre>\n";

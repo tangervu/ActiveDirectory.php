@@ -6,7 +6,7 @@
  * @license http://opensource.org/licenses/LGPL-3.0 LGPL v3
  **/
 
-require_once dirname(__FILE__) . '/user/authenticator.php';
+namespace ActiveDirectory;
 
 class User {
 	
@@ -54,7 +54,7 @@ class User {
 	public function loadConfig($iniFile) {
 		$cfg = parse_ini_file($iniFile,true);
 		if($cfg === false) {
-			throw new UserException("Could not read config file '$iniFile'");
+			throw new Exception("Could not read config file '$iniFile'");
 		}
 		
 		//General settings
@@ -62,7 +62,6 @@ class User {
 		if(isset($cfg['general'])) {
 			
 			if(isset($cfg['general']['http_authentication']) && $cfg['general']['http_authentication']) {
-				require_once dirname(__FILE__) . '/user/authenticator/http.php';
 				$authenticator = new User\Authenticator\Http();
 				$this->addAuthenticator($authenticator);
 			}
@@ -76,11 +75,9 @@ class User {
 		
 		//AD server settings for ldap authenticator
 		if($cfg) {
-			require_once dirname(__FILE__) . '/activedirectory.php';
 			$ad = new ActiveDirectory();
 			$ad->loadConfig($iniFile);
-			require_once dirname(__FILE__) . '/user/authenticator/ldap.php';
-			$authenticator = new \User\Authenticator\Ldap($ad);
+			$authenticator = new User\Authenticator\Ldap($ad);
 			if($realm) {
 				$authenticator->realm = $realm;
 			}
@@ -100,7 +97,6 @@ class User {
 	 * 
 	 */
 	public function connectToAd($host, $username, $password, $base_dn = null) {
-		require_once dirname(__FILE__) . '/activedirectory.php';
 		$this->ad = new ActiveDirectory($host, $username, $password, $base_dn);
 		return $this->ad;
 	}
@@ -123,11 +119,11 @@ class User {
 					$this->authenticated = true;
 					return $this->login;
 				}
-				catch(User\AuthenticatorException $e) {
+				catch(Exception $e) {
 					//Could not identify the user using the authentication method
 				}
 			}
-			throw new UserException("Could not identify the user");
+			throw new Exception("Could not identify the user");
 		}
 	}
 	
@@ -140,7 +136,7 @@ class User {
 	 */
 	public function isMemberOf($group) {
 		if(!$this->ad) {
-			throw new UserException("Connection to ActiveDirectory is not established");
+			throw new Exception("Connection to ActiveDirectory is not established");
 		}
 		
 		$dname = $this->ad->getDName($this->identify());
@@ -148,6 +144,3 @@ class User {
 		return $this->ad->isMemberOf($dname, $group);
 	}
 }
-
-class UserException extends \Exception { }
-

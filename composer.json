@@ -1,0 +1,20 @@
+{
+	"name": "tangervu/activedirectory",
+	"description": "User authentication and access control tools for Active Directory",
+	"keywords": ["Active Directory","Authentication","Access Control","Kerberos","LDAP"],
+	"homepage": "https://github.com/tangervu/ActiveDirectory.php",
+	"license": "LGPL-3.0",
+	"authors": [
+		{
+			"name": "Tuomas Angervuori",
+			"email": "tuomas.angervuori@gmail.com",
+			"homepage": "http://anger.kapsi.fi/tuomas/",
+			"role": "Developer"
+		}
+	],
+	"autoload": {
+		"psr-4": {
+			"PHPAccess\\": "src/"
+		}
+	}
+}

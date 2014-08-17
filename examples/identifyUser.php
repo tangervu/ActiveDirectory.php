@@ -7,7 +7,7 @@
  * @author Tuomas Angervuori <tuomas.angervuori@gmail.com>
  */
 
-require_once '../user.php';
-$user = new User();
+require_once '../vendor/autoload.php';
+$user = new ActiveDirectory\User();
 $user->loadConfig('../config.ini');
 echo $user->identify() . "\n";

@@ -14,8 +14,8 @@ List members also from subgroups: <input type="checkbox" name="recurse" value="1
 
 <?php
 if(isset($_GET['group'])) {
-	require_once '../activedirectory.php';
-	$ad = new ActiveDirectory();
+	require_once '../vendor/autoload.php';
+	$ad = new ActiveDirectory\ActiveDirectory();
 	$ad->loadConfig('../config.ini');
 	
 	if(isset($_GET['recurse'])) {

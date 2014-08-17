@@ -6,8 +6,7 @@
  * @license http://opensource.org/licenses/LGPL-3.0 LGPL v3
  */
 
-require_once dirname(__FILE__) . '/activedirectory/connection.php';
-
+namespace ActiveDirectory;
 
 class ActiveDirectory {
 	
@@ -25,7 +24,7 @@ class ActiveDirectory {
 	public function loadConfig($iniFile) {
 		$cfg = parse_ini_file($iniFile,true);
 		if($cfg === false) {
-			throw new ActiveDirectoryException("Could not read config file '$iniFile'");
+			throw new Exception("Could not read config file '$iniFile'");
 		}
 		
 		//General settings
@@ -45,7 +44,7 @@ class ActiveDirectory {
 		
 		//AD server settings
 		foreach($cfg as $name => $vals) {
-			$conn = new ActiveDirectory\Connection($vals['host'], $vals['username'], $vals['password'], $vals['base_dn']);
+			$conn = new Connection($vals['host'], $vals['username'], $vals['password'], $vals['base_dn']);
 			$this->addConnection($conn, $name);
 			if(isset($vals['aliases']) && trim($vals['aliases']) != '') {
 				foreach(explode(',',trim($vals['aliases'])) as $alias) {
@@ -64,7 +63,7 @@ class ActiveDirectory {
 	/**
 	 * Add new ActiveDirectory server
 	 */
-	public function addConnection(ActiveDirectory\Connection $conn, $name = 'default') {
+	public function addConnection(Connection $conn, $name = 'default') {
 		$name = strtolower($name);
 		$conn->timelimit = $this->timelimit;
 		$conn->sizelimit = $this->sizelimit;
@@ -80,7 +79,7 @@ class ActiveDirectory {
 	 */
 	public function addConnectionAlias($connectionName, $alias) {
 		if(!isset($this->connPool[$connectionName])) {
-			throw new ActiveDirectoryException("Connection '$connectionName' is not defined!");
+			throw new Exception("Connection '$connectionName' is not defined!");
 		}
 		if(!isset($this->connAliases[$connectionName])) {
 			$this->connAliases[$connectionName] = array();
@@ -110,7 +109,7 @@ class ActiveDirectory {
 			}
 		}
 		if(!$foundConnection) {
-			throw new ActiveDirectoryException("Unknown connection '$name'");
+			throw new Exception("Unknown connection '$name'");
 		}
 	}
 	
@@ -122,7 +121,7 @@ class ActiveDirectory {
 			return $this->connName;
 		}
 		else {
-			throw new ActiveDirectoryException("No connection in use");
+			throw new Exception("No connection in use");
 		}
 	}
 	
@@ -147,7 +146,7 @@ class ActiveDirectory {
 	 */
 	public function query($query, array $attributes = null) {
 		if(!$this->conn) {
-			throw new ActiveDirectoryException("No connection");
+			throw new Exception("No connection");
 		}
 		return $this->conn->query($query, $attributes);
 	}
@@ -166,10 +165,10 @@ class ActiveDirectory {
 		//Fetch direct user memberships
 		$data = $this->query($query, $attributes);
 		if(count($data) == 0) {
-			throw new ActiveDirectoryException("DName '$dname' not found!");
+			throw new Exception("DName '$dname' not found!");
 		}
 		else if(count($data) > 1) {
-			throw new ActiveDirectoryException("Multiple users with DName '$dname'");
+			throw new Exception("Multiple users with DName '$dname'");
 		}
 		
 		return $data[0];
@@ -187,10 +186,10 @@ class ActiveDirectory {
 		$query = '(samaccountname=' . self::quote($login) . ')';
 		$data = $this->query($query, array('dn'));
 		if(count($data) == 0) {
-			throw new ActiveDirectoryException("User '$login' not found!");
+			throw new Exception("User '$login' not found!");
 		}
 		else if(count($data) > 1) {
-			throw new ActiveDirectoryException("Multiple users with login '$login'");
+			throw new Exception("Multiple users with login '$login'");
 		}
 		return $data[0]['dn'];
 	}
@@ -385,17 +384,17 @@ class ActiveDirectory {
 	public function authenticate($login, $password) {
 		
 		if(!$this->conn) {
-			throw new ActiveDirectoryException("No connection to ActiveDirectory");
+			throw new Exception("No connection to ActiveDirectory");
 		}
 		
 		//Try to login to the ldap server using the user login & password
 		$host = $this->conn->getHost();
 		$conn = ldap_connect($host);
 		if(!$conn) {
-			throw new ActiveDirectoryException("Unable to connect to '$host'");
+			throw new Exception("Unable to connect to '$host'");
 		}
-		ldap_set_option($conn, LDAP_OPT_PROTOCOL_VERSION, 3);
-		ldap_set_option($conn, LDAP_OPT_REFERRALS, 0);
+		ldap_set_option($conn, \LDAP_OPT_PROTOCOL_VERSION, 3);
+		ldap_set_option($conn, \LDAP_OPT_REFERRALS, 0);
 		if(@ldap_bind($conn, $login, $password)) {
 			$result = true;
 		}
@@ -439,7 +438,7 @@ class ActiveDirectory {
 						$time .= '+00:00';
 					}
 					else {
-						trigger_error("Unknown ActiveDirectory timezone '$timezone'",E_USER_WARNING);
+						trigger_error("Unknown ActiveDirectory timezone '$timezone'",\E_USER_WARNING);
 					}
 				}
 				return $time;
@@ -487,6 +486,3 @@ class ActiveDirectory {
 		return $results;
 	}
 }
-
-class ActiveDirectoryException extends \Exception {}
-
